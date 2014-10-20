@@ -29,9 +29,10 @@
         when Data :: bniary,
              Reason :: any().
 
--callback end_of_part(State) ->
+-callback end_of_part(Data, State) ->
     {ok, State} | {error, Reason}
-        when Reason :: any().
+        when Data :: bniary,
+             Reason :: any().
 
 -callback finish(State) ->
     {ok, [{atom(), any()}]} | {error, Reason}

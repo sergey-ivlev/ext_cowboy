@@ -41,15 +41,14 @@ process(Req, Handler, HandlerOpts) ->
 %% ===================================================================
 %%% Internal functions
 %% ===================================================================
-
 acc(Req, State) ->
-    case cowboy_req:multipart_data(Req) of
-        {headers, Headers, Req2} ->
+    case cowboy_req:part(Req) of
+        {ok, Headers, Req2} ->
             F = fun(R, S) ->
                         acc_file(Headers, R, S, fun acc/2)
                 end,
             {next, F, Req2, State};
-        {eof, Req2} ->
+        {done, Req2} ->
             {finish, Req2, State}
     end.
 
@@ -74,9 +73,9 @@ acc_file_data(Req,
         handler = Handler,
         handler_state = HandlerState
     }=State, Succ) ->
-    case cowboy_req:multipart_data(Req) of
-        {end_of_part, Req2} ->
-            case Handler:end_of_part(HandlerState) of
+    case cowboy_req:part_body(Req) of
+        {ok, Data, Req2} ->
+            case Handler:end_of_part(Data, HandlerState) of
                 {ok, HandlerState2} ->
                     State2 = State#state{
                         handler_state=HandlerState2
@@ -85,7 +84,7 @@ acc_file_data(Req,
                 {error, Reason} ->
                     {terminate, Reason, Req, State}
             end;
-        {body, Data, Req2} ->
+        {more, Data, Req2} ->
             case Handler:part_data(Data, HandlerState) of
                 {ok, HandlerState2} ->
                     State2 = State#state{

@@ -6,7 +6,7 @@
          init/1,
          start_of_part/2,
          part_data/2,
-         end_of_part/1,
+         end_of_part/2,
          finish/1,
          terminate/2
         ]).
@@ -57,7 +57,7 @@ init(Opts) ->
 
 start_of_part(Headers, State) ->
     {_, Disp} = lists:keyfind(<<"content-disposition">>, 1, Headers),
-    {_DispToken, DispParams} = cowboy_multipart:content_disposition(Disp),
+    {_DispToken, DispParams} = cow_multipart:parse_content_disposition(Disp),
     {_, Name} = lists:keyfind(<<"name">>, 1, DispParams),
     State2 = State#state{name=Name},
     IsFile = lists:keymember(<<"filename">>, 1, DispParams),
@@ -164,6 +164,12 @@ prop_data(Data, MaxPropSize, Buff)
     {error, {max_size, MaxPropSize}};
 prop_data(Data, _MaxPropSize, Buff) ->
     {ok, <<Buff/binary, Data/binary>>}.
+
+end_of_part(Data, State) ->
+    case part_data(Data, State) of
+        {ok, State2} -> end_of_part(State2);
+        Error -> Error
+    end.
 
 end_of_part(#state{
                file_opts=undefined,
